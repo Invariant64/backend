@@ -42,20 +42,25 @@ def execute_python(problem, submission, test_case, hash_name, result):
         f.write(submission.code)
     try:
         start_time = time.time()
-        result.output = subprocess.run(
+        execute_result = subprocess.run(
             args=[sys.executable, file_name],
             input=test_case.input,
             text=True,
             capture_output=True,
             timeout=problem.time_limit,
-        ).stdout.strip()
+        )
         end_time = time.time()
+        result.output = execute_result.stdout.strip()
         result.execution_time = end_time - start_time
-        result.result = "Accepted" if result.output == test_case.output else "Wrong Answer"
-    except subprocess.CalledProcessError as e:
-        result.result = "Runtime Error"
+        if execute_result.returncode != 0:
+            result.result = "Runtime Error"
+        elif result.output == test_case.output:
+            result.result = "Accepted"
+        else:
+            result.result = "Wrong Answer"
     except subprocess.TimeoutExpired as e:
         result.result = "Time Limit Exceeded"
+
     result.memory_used = 0
     os.remove(file_name)
     return result
@@ -69,7 +74,7 @@ def execute_java(problem, submission, test_case, hash_name, result):
         f.write(submission.code)
     try:
         compile_result = subprocess.run(
-            ["javac", "-d", f"temp/{hash_name}", code_file_name],
+            args=["javac", "-d", f"temp/{hash_name}", code_file_name],
             text=True,
             capture_output=False,
             timeout=5,  # 5 seconds for compilation
@@ -78,18 +83,22 @@ def execute_java(problem, submission, test_case, hash_name, result):
             result.result = "Compilation Error"
             return result
         start_time = time.time()
-        result.output = subprocess.run(
-            ["java", "-cp", f"temp/{hash_name}", class_name],
+        execute_result = subprocess.run(
+            args=["java", "-cp", f"temp/{hash_name}", class_name],
             input=test_case.input,
             text=True,
             capture_output=True,
             timeout=problem.time_limit
-        ).stdout.strip()
+        )
         end_time = time.time()
+        result.output = execute_result.stdout.strip()
         result.execution_time = end_time - start_time
-        result.result = "Accepted" if result.output == test_case.output else "Wrong Answer"
-    except subprocess.CalledProcessError as e:
-        result.result = "Runtime Error"
+        if execute_result.returncode != 0:
+            result.result = "Runtime Error"
+        elif result.output == test_case.output:
+            result.result = "Accepted"
+        else:
+            result.result = "Wrong Answer"
     except subprocess.TimeoutExpired as e:
         result.result = "Time Limit Exceeded"
     result.memory_used = 0
@@ -106,7 +115,7 @@ def execute_c(problem, submission, test_case, hash_name, result, mode="cpp"):
         f.write(submission.code)
     try:
         compile_result = subprocess.run(
-            [compiler, code_file_name, "-o", exe_file_name],
+            args=[compiler, code_file_name, "-o", exe_file_name],
             text=True,
             capture_output=False,
             timeout=5,  # 5 seconds for compilation
@@ -115,16 +124,22 @@ def execute_c(problem, submission, test_case, hash_name, result, mode="cpp"):
             result.result = "Compilation Error"
             return result
         start_time = time.time()
-        result.output = subprocess.run(
-            [exe_file_name],
+        execute_result = subprocess.run(
+            args=[exe_file_name],
             input=test_case.input,
             text=True,
             capture_output=True,
             timeout=problem.time_limit,
-        ).stdout.strip()
+        )
         end_time = time.time()
+        result.output = execute_result.stdout.strip()
         result.execution_time = end_time - start_time
-        result.result = "Accepted" if result.output == test_case.output else "Wrong Answer"
+        if execute_result.returncode != 0:
+            result.result = "Runtime Error"
+        elif result.output == test_case.output:
+            result.result = "Accepted"
+        else:
+            result.result = "Wrong Answer"
     except subprocess.CalledProcessError as e:
         result.result = "Runtime Error"
     except subprocess.TimeoutExpired as e:
