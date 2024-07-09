@@ -13,7 +13,6 @@ class Submission(models.Model):
     problem_id = models.IntegerField()
     language = models.CharField(max_length=100)
     code = models.TextField()
-    result_id = models.IntegerField(null=True)
     status = models.IntegerField(default=Status.PENDING)
     time = models.DateTimeField(auto_now_add=True)
 
@@ -44,22 +43,6 @@ class Problem(models.Model):
         ordering = ["id"]
 
 
-class Result(models.Model):
-    id = models.AutoField(primary_key=True)
-    submission_id = models.IntegerField()
-    result = models.CharField(max_length=100)
-    execution_time = models.FloatField()
-    memory_used = models.FloatField()
-    time = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Result {self.id} for submission {self.submission_id}"
-
-    class Meta:
-        db_table = "results"
-        ordering = ["-time"]
-
-
 class TestCase(models.Model):
     id = models.AutoField(primary_key=True)
     problem_id = models.IntegerField()
@@ -73,4 +56,22 @@ class TestCase(models.Model):
     class Meta:
         db_table = "test_cases"
         ordering = ["id"]
+
+
+class Result(models.Model):
+    id = models.AutoField(primary_key=True)
+    submission_id = models.IntegerField()
+    test_case_id = models.IntegerField()
+    result = models.CharField(max_length=100)
+    execution_time = models.FloatField()
+    memory_used = models.FloatField()
+    time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Result {self.id} for submission {self.submission_id}"
+
+    class Meta:
+        db_table = "results"
+        ordering = ["-time"]
+
 
