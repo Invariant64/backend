@@ -74,4 +74,3 @@ class Result(models.Model):
         db_table = "results"
         ordering = ["-time"]
 
-

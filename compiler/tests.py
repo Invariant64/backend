@@ -4,6 +4,36 @@ from .models import Submission, Problem, TestCase as Test, Result
 from .execute import execute_once, execute_all
 
 
+problem_hello_world = {
+    "title": "Hello, World!",
+    "description": "Write a program that prints 'Hello, World!' to the console.",
+    "input_description": "There is no input for this problem.",
+    "output_description": "Print 'Hello, World!' to the console.",
+    "sample_input": "",
+    "sample_output": "Hello, World!",
+    "time_limit": 1,
+    "memory_limit": 256,
+}
+
+test_cases_hello_world = [
+    {
+        "input": "",
+        "output": "Hello, World!",
+        "check_order": 1,
+    },
+    {
+        "input": "5\n",
+        "output": "Hello, World!",
+        "check_order": 2,
+    },
+    {
+        "input": "11111",
+        "output": "Hello, World!",
+        "check_order": 3,
+    },
+]
+
+
 class SubmissionModelTest(TestCase):
 
     def test_string_representation(self):
@@ -28,16 +58,7 @@ class SubmissionModelTest(TestCase):
 class ProblemModelTest(TestCase):
 
     def test_string_representation(self):
-        problem = Problem.objects.create(
-            title="Hello, World!",
-            description="Write a program that prints 'Hello, World!' to the console.",
-            input_description="There is no input for this problem.",
-            output_description="Print 'Hello, World!' to the console.",
-            sample_input="",
-            sample_output="Hello, World!",
-            time_limit=1,
-            memory_limit=256,
-        )
+        problem = Problem.objects.create(**problem_hello_world)
         self.assertEqual(str(problem), f"Problem {problem.id}: {problem.title}")
 
 
@@ -68,36 +89,8 @@ class ExecuteSimpleTest(TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.languages = ["Python", "Java", "C++", "C"]
-        self.problem = Problem.objects.create(
-            title="Hello, World!",
-            description="Write a program that prints 'Hello, World!' to the console.",
-            input_description="There is no input for this problem.",
-            output_description="Print 'Hello, World!' to the console.",
-            sample_input="",
-            sample_output="Hello, World!",
-            time_limit=1,
-            memory_limit=256,
-        )
-        self.test_cases = [
-            Test.objects.create(
-                problem_id=1,
-                input="",
-                output="Hello, World!",
-                check_order=1,
-            ),
-            Test.objects.create(
-                problem_id=1,
-                input="5\n",
-                output="Hello, World!",
-                check_order=2,
-            ),
-            Test.objects.create(
-                problem_id=1,
-                input="11111",
-                output="Hello, World!",
-                check_order=3,
-            ),
-        ]
+        self.problem = Problem.objects.create(**problem_hello_world)
+        self.test_cases = [Test.objects.create(problem_id=1, **tc) for tc in test_cases_hello_world]
 
         self.codes = {
             "Python": {
@@ -205,3 +198,31 @@ class ExecuteSimpleTest(TestCase):
                     results = execute_all(self.problem, submission)
                     for test_case, result in zip(self.test_cases, results):
                         self.assertEqual(result.result, s, f"Language: {language}, Status: {s}, Test Case: {test_case.id}")
+
+
+class CreateSubmissionViewTest(TestCase):
+
+    def test_create_submission(self):
+        Problem.objects.create(**problem_hello_world)
+        for tc in test_cases_hello_world:
+            Test.objects.create(problem_id=1, **tc)
+        response = self.client.post("/create_submission/", {
+            "user_id": 1,
+            "problem_id": 1,
+            "language": "Python",
+            "code": "print('Hello, World!')",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
+
+        submission_id = response.json()["submission_id"]
+        results = Result.objects.filter(submission_id=submission_id)
+        self.assertEqual(len(results), len(test_cases_hello_world))
+        for result, test_case in zip(results, test_cases_hello_world):
+            self.assertEqual(result.result, "Accepted")
+
+    def test_invalid_method(self):
+        response = self.client.get("/create_submission/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "error")
+        self.assertEqual(response.json()["message"], "Invalid request method")
